@@ -6,6 +6,26 @@ import { requireAuth } from "../middleware/requireAuth";
 const router = express.Router();
 
 // register
+/*async:Very important.
+
+MongoDB is slow compared to CPU.
+When doing
+User.findOne()
+JavaScript doesn't know when MongoDB will finish.
+So
+async
+allows
+await
+async goes before the function definition and forces it to return a Promise.
+
+await goes before an asynchronous operation (like an API fetch) and pauses the function until the data arrives.
+
+Non-blocking: While await pauses your function, it doesn't freeze the screen or block other code outside that function from running.
+
+Pairing: You cannot use await inside a regular function; it must have the async tag on the parent function.
+
+
+*/
 router.post("/register", async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
@@ -112,6 +132,7 @@ router.post("/login", async (req, res) => {
     });
   }
 });
+//get the login user
 
 router.get("/me", requireAuth, async (req, res) => {
   try {

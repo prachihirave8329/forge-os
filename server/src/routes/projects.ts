@@ -3,7 +3,59 @@ import Project from "../models/Project";
 import User from "../models/User";
 import { requireAuth } from "../middleware/requireAuth";
 import { requireAdmin } from "../middleware/requireAdmin";
-
+import LifecycleStep from "../models/LifecycleStep";
+const lifecycleTemplate = [
+  {
+    phase: "Planning",
+    steps: [
+      "Gather Requirements",
+      "Define Scope",
+      "Identify Stakeholders",
+    ],
+  },
+  {
+    phase: "Analysis",
+    steps: [
+      "Analyze Requirements",
+      "Risk Assessment",
+    ],
+  },
+  {
+    phase: "Design",
+    steps: [
+      "Create UI Design",
+      "Design Database",
+    ],
+  },
+  {
+    phase: "Development",
+    steps: [
+      "Build Backend",
+      "Build Frontend",
+    ],
+  },
+  {
+    phase: "Testing",
+    steps: [
+      "Unit Testing",
+      "Integration Testing",
+    ],
+  },
+  {
+    phase: "Deployment",
+    steps: [
+      "Deploy Backend",
+      "Deploy Frontend",
+    ],
+  },
+  {
+    phase: "Maintenance",
+    steps: [
+      "Bug Fixes",
+      "Performance Improvements",
+    ],
+  },
+];
 const router = express.Router();
 
   // create project (admin only)
@@ -11,52 +63,23 @@ router.post("/", requireAuth, requireAdmin, async (req, res) => {
   try {
     const { name, description } = req.body;
 
-    const lifecycleSteps = [
-      // Planning
-      { phase: "Planning", label: "Write the project scope and goals", done: false },
-      { phase: "Planning", label: "List the main requirements", done: false },
-      { phase: "Planning", label: "Agree the timeline with the team", done: false },
-
-      // Analysis
-      { phase: "Analysis", label: "Gather detailed requirements from stakeholders", done: false },
-      { phase: "Analysis", label: "Review and confirm the requirements", done: false },
-      { phase: "Analysis", label: "Note risks and constraints", done: false },
-
-      // Design
-      { phase: "Design", label: "Decide the architecture and tech stack", done: false },
-      { phase: "Design", label: "Design the data model", done: false },
-      { phase: "Design", label: "Write the software design document (SDD)", done: false },
-
-      // Coding
-      { phase: "Coding", label: "Set up the repository and environment", done: false },
-      { phase: "Coding", label: "Build the core features", done: false },
-      { phase: "Coding", label: "Produce a working prototype", done: false },
-
-      // Testing
-      { phase: "Testing", label: "Write and run tests", done: false },
-      { phase: "Testing", label: "Fix the bugs that surface", done: false },
-      { phase: "Testing", label: "Confirm the app meets the requirements", done: false },
-
-      // Deployment
-      { phase: "Deployment", label: "Prepare the production environment", done: false },
-      { phase: "Deployment", label: "Deploy the application", done: false },
-      { phase: "Deployment", label: "Confirm end users can access it", done: false },
-
-      // Maintenance
-      { phase: "Maintenance", label: "Monitor the application", done: false },
-      { phase: "Maintenance", label: "Fix bugs and improve performance", done: false },
-      { phase: "Maintenance", label: "Keep documentation updated", done: false },
-    ];
-
+// create the project with the lifecycle steps
     const project = await Project.create({
       name,
       description,
       owner: req.user?.id,
       members: [],
-      lifecyclePhase: "Planning",
-      lifecycleSteps,
-    });
+      lifecyclePhase: "Planning"
+    });// Create lifecycle checklist
+const lifecycleSteps = lifecycleTemplate.flatMap((phase) =>
+  phase.steps.map((title) => ({
+    project: project._id,
+    phase: phase.phase,
+    title,
+  }))
+);
 
+await LifecycleStep.insertMany(lifecycleSteps);
     res.status(201).json(project);
   } catch (error) {
     console.error(error);
@@ -71,10 +94,14 @@ router.get("/", requireAuth, async (req, res) => {
     let projects;
 
     if (req.user?.role === "admin") {
-      projects = await Project.find()
+      projects = await Project.find()//projects = await Project.find()If the user is an admin, this queries the database to find every single project in the collection.
         .populate("owner", "name email")
         .populate("members", "name email");
     } else {
+      /*if (req.user?.role === "admin") {
+        // Checks if the logged-in user has an admin role. 
+        // It uses optional chaining (?.) to safely read the role without throwing an error if req.user is undefined.
+      }*/
       projects = await Project.find({
         members: req.user?.id,
       })
@@ -90,7 +117,8 @@ router.get("/", requireAuth, async (req, res) => {
 });
 
 //get all users (admin only)  
-
+//Queries the database to find all user documents. 
+// The .select("-passwordHash") chain explicitly excludes the passwordHash field from the results for security.
 router.get("/users/all", requireAuth, requireAdmin, async (req, res) => {
   try {
     const users = await User.find().select("-passwordHash");
@@ -115,7 +143,12 @@ router.get("/:id", requireAuth, async (req, res) => {
         message: "Project not found",
       });
     }
-
+/* 
+(member: any) => member._id.toString() === req.user?.id
+This is the condition checked for every member:(member: any): Loops through each member object
+ (typed as any).member._id.toString(): Converts the database ObjectID (_id) of the member into a standard text
+  string.=== req.user?.id: Compares that string to the logged-in user's ID. The ?. (optional chaining) prevents a crash if req.user is missing.
+*/
     const isMember = project.members.some(
       (member: any) => member._id.toString() === req.user?.id
     );
@@ -142,7 +175,7 @@ router.put("/:id", requireAuth, requireAdmin, async (req, res) => {
     const project = await Project.findByIdAndUpdate(
       req.params.id,
       { name, description },
-      { new: true }
+      { returnDocument: "after" }
     );
 
     if (!project) {
