@@ -11,7 +11,8 @@ import {
   getUsers,
   assignMember,
 } from "../services/projectService";
-
+import { getTasks } from "../services/taskService";
+import { getIdeas } from "../services/ideaService";
 import {
   ArrowLeft,
   FolderKanban,
@@ -56,14 +57,16 @@ function ProjectView() {
 
   const [loading, setLoading] =
     useState(true);
-
+const [taskCount, setTaskCount] = useState(0);
+const [ideaCount, setIdeaCount] = useState(0);
   const [activeTab, setActiveTab] =
     useState<Tab>("overview");
 
   useEffect(() => {
     if (projectId) {
       loadProject(projectId);
-
+ loadTaskCount();
+    loadIdeaCount();
       if (user?.role === "admin") {
         loadUsers();
       }
@@ -92,6 +95,27 @@ function ProjectView() {
       console.error(error);
     }
   };
+  const loadTaskCount = async () => {
+  if (!projectId) return;
+
+  try {
+    const tasks = await getTasks(projectId);
+    setTaskCount(tasks.length);
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+const loadIdeaCount = async () => {
+  if (!projectId) return;
+
+  try {
+    const ideas = await getIdeas(projectId);
+    setIdeaCount(ideas.length);
+  } catch (error) {
+    console.error(error);
+  }
+};
 
   const handleAssignMember =
     async () => {
@@ -263,39 +287,48 @@ function ProjectView() {
                 {project.description}
               </p>
             </div>
+<div className="grid gap-5 md:grid-cols-4">
+  <div className="rounded-xl bg-blue-50 p-5">
+    <p className="text-sm text-gray-500">
+      Current Phase
+    </p>
 
-            <div className="grid gap-5 md:grid-cols-3">
-              <div className="rounded-xl bg-blue-50 p-5">
-                <p className="text-sm text-gray-500">
-                  Current Phase
-                </p>
+    <h3 className="mt-2 text-2xl font-bold text-blue-700">
+      {project.lifecyclePhase}
+    </h3>
+  </div>
 
-                <h3 className="mt-2 text-2xl font-bold text-blue-700">
-                  {project.lifecyclePhase}
-                </h3>
-              </div>
+  <div className="rounded-xl bg-green-50 p-5">
+    <p className="text-sm text-gray-500">
+      Team Members
+    </p>
 
-              <div className="rounded-xl bg-green-50 p-5">
-                <p className="text-sm text-gray-500">
-                  Team Members
-                </p>
+    <h3 className="mt-2 text-2xl font-bold text-green-700">
+      {project.members.length}
+    </h3>
+  </div>
 
-                <h3 className="mt-2 text-2xl font-bold text-green-700">
-                  {project.members.length}
-                </h3>
-              </div>
+  <div className="rounded-xl bg-yellow-50 p-5">
+    <p className="text-sm text-gray-500">
+      Tasks
+    </p>
 
-              <div className="rounded-xl bg-purple-50 p-5">
-                <p className="text-sm text-gray-500">
-                  Project Owner
-                </p>
+    <h3 className="mt-2 text-2xl font-bold text-yellow-700">
+      {taskCount}
+    </h3>
+  </div>
 
-                <h3 className="mt-2 text-lg font-bold text-purple-700">
-                  {project.owner.name}
-                </h3>
-              </div>
-            </div>
+  <div className="rounded-xl bg-purple-50 p-5">
+    <p className="text-sm text-gray-500">
+      Ideas
+    </p>
 
+    <h3 className="mt-2 text-2xl font-bold text-purple-700">
+      {ideaCount}
+    </h3>
+  </div>
+</div>
+            
             <div className="rounded-xl border border-gray-200 p-6">
               <h2 className="mb-4 text-xl font-bold">
                 Team Members

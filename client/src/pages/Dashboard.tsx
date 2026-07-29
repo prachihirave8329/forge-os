@@ -10,16 +10,17 @@ import ProjectCard from "../components/ProjectCard";
 import EmptyState from "../components/ui/EmptyState";
 import {
   FolderKanban,
-  CheckSquare,
-  Lightbulb,
   Users,
+  GitBranch,
+  Shield,
+   CheckSquare
 } from "lucide-react";
-
 import StatCard from "../components/ui/StatCard";
 import {
   getProjects,
   createProject
 } from "../services/projectService";
+import { getTasks } from "../services/taskService";
 
 interface User {
   _id: string;
@@ -40,7 +41,7 @@ function Dashboard() {
   const navigate = useNavigate();
 
   const [projects, setProjects] = useState<Project[]>([]);
-  
+  const [taskCount, setTaskCount] = useState(0);
 
   const [loading, setLoading] = useState(true);
 
@@ -49,7 +50,7 @@ function Dashboard() {
 
   useEffect(() => {
     loadProjects();
-
+    loadTaskCount();
    
   }, []);
 
@@ -63,9 +64,37 @@ function Dashboard() {
     } finally {
       setLoading(false);
     }
-  };
 
- 
+
+
+  };
+const loadTaskCount = async () => {
+  try {
+    let total = 0;
+
+    const projectsData = await getProjects();
+
+    for (const project of projectsData) {
+      const tasks = await getTasks(project._id);
+      total += tasks.length;
+    }
+
+    setTaskCount(total);
+  } catch (error) {
+    console.error(error);
+  }
+};
+ const totalProjects = projects.length;
+
+const totalMembers = projects.reduce(
+  (count, project) => count + project.members.length,
+  0
+);
+
+const activePhase =
+  projects.length > 0
+    ? projects[0].lifecyclePhase
+    : "N/A";
 
   const handleCreateProject = async (
     e: React.FormEvent<HTMLFormElement>
@@ -82,7 +111,7 @@ function Dashboard() {
       setDescription("");
 
       await loadProjects();
-
+      await loadTaskCount();
       alert("Project created successfully!");
     } catch (error) {
       console.error(error);
@@ -124,23 +153,36 @@ function Dashboard() {
 <div className="mb-10 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
   <StatCard
     title="Projects"
-    value={projects.length}
+    value={totalProjects}
     icon={FolderKanban}
   />
 
   <StatCard
-    title="Tasks"
-    value="--"
-    icon={CheckSquare}
+    title="Members"
+    value={totalMembers}
+    icon={Users}
   />
+<StatCard
+  title="Tasks"
+  value={taskCount}
+  icon={CheckSquare}
+/>
 
-  <StatCard
-    title="Ideas"
-    value="--"
-    icon={Lightbulb}
-  />
-
-  
+ <StatCard
+  title="Current Phase"
+  value={activePhase}
+  icon={GitBranch}
+/>
+<StatCard
+  title="Role"
+  value={
+    user?.role
+      ? user.role.charAt(0).toUpperCase() +
+        user.role.slice(1)
+      : "-"
+  }
+  icon={Shield}
+/>
 </div>
       {user?.role === "admin" && (
   <Card className="mb-10">
