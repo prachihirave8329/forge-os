@@ -36,9 +36,12 @@ function Register() {
     <div className="flex min-h-screen items-center justify-center bg-slate-100 px-4">
       <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl">
         <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold text-blue-600">
-            Forge-OS
-          </h1>
+          <Link
+  to="/"
+  className="text-4xl font-bold text-blue-600"
+>
+  Forge-OS
+</Link>
 
           <p className="mt-2 text-gray-500">
             Create your account
